@@ -34,8 +34,9 @@ class FlutterCallkitIncoming {
   /// Event.ACTION_CALL_TOGGLE_AUDIO_SESSION - only iOS
   /// Event.DID_UPDATE_DEVICE_PUSH_TOKEN_VOIP - only iOS
   /// }
-  static Stream<CallEvent?> get onEvent =>
-      _eventChannel.receiveBroadcastStream().map(_receiveCallEvent);
+  static final Stream<CallEvent?> onEvent = () {
+    return _eventChannel.receiveBroadcastStream().map(_receiveCallEvent);
+  }();
 
   /// Show Callkit Incoming.
   /// On iOS, using Callkit. On Android, using a custom UI.

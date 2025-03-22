@@ -532,11 +532,44 @@ public class SwiftFlutterCallkitIncomingPlugin: NSObject, FlutterPlugin, CXProvi
         sendEvent(SwiftFlutterCallkitIncomingPlugin.ACTION_CALL_ACCEPT, self.data?.toJSON())
         if let appDelegate = UIApplication.shared.delegate as? CallkitIncomingAppDelegate {
             appDelegate.onAccept(call, action)
-        }else {
-            action.fulfill()
+        else {
+            self.fulfillAnswer(action: action, call: call)
         }
     }
-    
+
+    private func fulfillAnswer(action: CXAnswerCallAction, call: Call) {
+         let onLockscreen = call.data.extra["onLockscreen"] as? String == "1"
+         if !onLockscreen || !(call.data.supportsVideo && call.data.type > 0) {
+             action.fulfill()
+             return
+         }
+
+         var token : NSObjectProtocol?
+         let noti = UIApplication.protectedDataDidBecomeAvailableNotification
+         token = NotificationCenter.default.addObserver(forName: noti, object: nil, queue: nil) {(notif) in
+             NotificationCenter.default.removeObserver(token)
+             action.fulfill()
+             token = nil
+         }
+
+         var tick : ((Double) -> Void)?
+         tick = {(counter) -> Void in
+             if token == nil {
+                 return
+             }
+             if counter == 0 {
+                 NotificationCenter.default.removeObserver(token)
+                 action.fulfill()
+                 return
+             }
+             DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                 tick?(counter - 1)
+             }
+         }
+
+         tick?(15)
+     }
+
 //    private func checkUnlockedAndFulfill(action: CXAnswerCallAction, counter: Int) {
 //        if UIApplication.shared.isProtectedDataAvailable {
 //            action.fulfill()
