@@ -16,6 +16,7 @@ class CallkitNotificationService : Service() {
 
         private val ActionForeground = listOf(
             CallkitConstants.ACTION_CALL_START,
+            CallkitConstants.ACTION_CALL_CONNECTED,
             CallkitConstants.ACTION_CALL_ACCEPT
         )
 
@@ -39,8 +40,9 @@ class CallkitNotificationService : Service() {
 
     }
 
-    private val callkitNotificationManager: CallkitNotificationManager? =
-        FlutterCallkitIncomingPlugin.getInstance()?.getCallkitNotificationManager()
+    private val callkitNotificationManager: CallkitNotificationManager? = FlutterCallkitIncomingPlugin.getInstance().getCallkitNotificationManager()
+    private val callkitSoundPlayerManager: CallkitSoundPlayerManager? = FlutterCallkitIncomingPlugin.getInstance().getCallkitSoundPlayerManager()
+
 
 
     override fun onCreate() {
@@ -51,32 +53,57 @@ class CallkitNotificationService : Service() {
         if (intent?.action === CallkitConstants.ACTION_CALL_START) {
             intent.getBundleExtra(CallkitConstants.EXTRA_CALLKIT_INCOMING_DATA)
                 ?.let {
-                    if(it.getBoolean(CallkitConstants.EXTRA_CALLKIT_CALLING_SHOW, true)) {
-                        FlutterCallkitIncomingPlugin.getInstance()?.getCallkitNotificationManager()
-                            ?.createNotificationChanel(it)
-                        showOngoingCallNotification(it)
-                    }else {
-                        stopSelf()
-                    }
+                    FlutterCallkitIncomingPlugin.getInstance().getCallkitNotificationManager()?.createNotificationChanel(it)
+                    showOngoingCallNotification(it, false)
                 }
+        }
+        if (intent?.action === CallkitConstants.ACTION_CALL_CONNECTED) {
+            intent.getBundleExtra(CallkitConstants.EXTRA_CALLKIT_INCOMING_DATA)
+                ?.let { showOngoingCallNotification(it, true) }
         }
         if (intent?.action === CallkitConstants.ACTION_CALL_ACCEPT) {
             intent.getBundleExtra(CallkitConstants.EXTRA_CALLKIT_INCOMING_DATA)
                 ?.let {
                     callkitNotificationManager?.clearIncomingNotification(it, true)
+                    callkitSoundPlayerManager?.stop()
                     if (it.getBoolean(CallkitConstants.EXTRA_CALLKIT_CALLING_SHOW, true)) {
-                        showOngoingCallNotification(it)
+                        showOngoingCallNotification(it, false)
                     }
+                }
+        }
+        if (intent?.action === CallkitConstants.ACTION_CALL_DECLINE) {
+            intent.getBundleExtra(CallkitConstants.EXTRA_CALLKIT_INCOMING_DATA)
+                ?.let {
+                    callkitNotificationManager?.clearIncomingNotification(it, false)
+                    stopSelf()
+                }
+        }
+        if (intent?.action === CallkitConstants.ACTION_CALL_ENDED) {
+            intent.getBundleExtra(CallkitConstants.EXTRA_CALLKIT_INCOMING_DATA)
+                ?.let {
+                    callkitNotificationManager?.clearIncomingNotification(it, false)
+                    stopSelf()
+                }
+        }
+        if (intent?.action === CallkitConstants.ACTION_CALL_TIMEOUT) {
+            intent.getBundleExtra(CallkitConstants.EXTRA_CALLKIT_INCOMING_DATA)
+                ?.let {
+                    callkitSoundPlayerManager?.stop()
+                    if (it.getBoolean(CallkitConstants.EXTRA_CALLKIT_MISSED_CALL_SHOW, true)) {
+                        callkitNotificationManager?.showMissCallNotification(it)
+                    }
+                    stopSelf()
                 }
         }
         return START_STICKY
     }
 
     @SuppressLint("MissingPermission")
-    private fun showOngoingCallNotification(bundle: Bundle) {
+    private fun showOngoingCallNotification(bundle: Bundle, isConnected: Boolean? = false) {
+
 
         val callkitNotification =
-            this.callkitNotificationManager?.getOnGoingCallNotification(bundle, false)
+            this.callkitNotificationManager?.getOnGoingCallNotification(bundle, isConnected)
         if (callkitNotification != null) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 startForeground(
@@ -94,12 +121,13 @@ class CallkitNotificationService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         callkitNotificationManager?.destroy()
+        callkitSoundPlayerManager?.destroy()
     }
+
 
     override fun onBind(p0: Intent?): IBinder? {
-        return null
+        return null;
     }
-
 
 
 }

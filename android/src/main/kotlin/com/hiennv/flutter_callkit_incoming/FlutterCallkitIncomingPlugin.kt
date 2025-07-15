@@ -27,14 +27,11 @@ class FlutterCallkitIncomingPlugin : FlutterPlugin, MethodCallHandler, ActivityA
         @SuppressLint("StaticFieldLeak")
         private lateinit var instance: FlutterCallkitIncomingPlugin
 
-        fun getInstance(): FlutterCallkitIncomingPlugin? {
-            if (hasInstance()) {
-                return instance
-            }
-            return null
+        public fun getInstance(): FlutterCallkitIncomingPlugin {
+            return instance
         }
 
-        fun hasInstance(): Boolean {
+        public fun hasInstance(): Boolean {
             return ::instance.isInitialized
         }
 
@@ -65,8 +62,8 @@ class FlutterCallkitIncomingPlugin : FlutterPlugin, MethodCallHandler, ActivityA
         fun initSharedInstance(context: Context, binaryMessenger: BinaryMessenger) {
             if (!::instance.isInitialized) {
                 instance = FlutterCallkitIncomingPlugin()
+                instance.callkitNotificationManager = CallkitNotificationManager(context)
                 instance.callkitSoundPlayerManager = CallkitSoundPlayerManager(context)
-                instance.callkitNotificationManager = CallkitNotificationManager(context, instance.callkitSoundPlayerManager)
                 instance.context = context
             }
 
@@ -174,21 +171,21 @@ class FlutterCallkitIncomingPlugin : FlutterPlugin, MethodCallHandler, ActivityA
                         )
                     )
 
-                    result.success(true)
+                    result.success("OK")
                 }
 
                 "showCallkitIncomingSilently" -> {
                     val data = Data(call.arguments() ?: HashMap())
                     data.from = "notification"
 
-                    result.success(true)
+                    result.success("OK")
                 }
 
                 "showMissCallNotification" -> {
                     val data = Data(call.arguments() ?: HashMap())
                     data.from = "notification"
                     callkitNotificationManager?.showMissCallNotification(data.toBundle())
-                    result.success(true)
+                    result.success("OK")
                 }
 
                 "startCall" -> {
@@ -200,7 +197,7 @@ class FlutterCallkitIncomingPlugin : FlutterPlugin, MethodCallHandler, ActivityA
                         )
                     )
 
-                    result.success(true)
+                    result.success("OK")
                 }
 
                 "muteCall" -> {
@@ -212,7 +209,7 @@ class FlutterCallkitIncomingPlugin : FlutterPlugin, MethodCallHandler, ActivityA
                     }
                     sendEvent(CallkitConstants.ACTION_CALL_TOGGLE_MUTE, map)
 
-                    result.success(true)
+                    result.success("OK")
                 }
 
                 "holdCall" -> {
@@ -224,35 +221,26 @@ class FlutterCallkitIncomingPlugin : FlutterPlugin, MethodCallHandler, ActivityA
                     }
                     sendEvent(CallkitConstants.ACTION_CALL_TOGGLE_HOLD, map)
 
-                    result.success(true)
+                    result.success("OK")
                 }
 
                 "isMuted" -> {
-                    result.success(true)
+                    result.success(false)
                 }
 
                 "endCall" -> {
                     val calls = getDataActiveCalls(context)
                     val data = Data(call.arguments() ?: HashMap())
                     val currentCall = calls.firstOrNull { it.id == data.id }
-                    if (currentCall != null && context != null) {
-                        if(currentCall.isAccepted) {
-                            context?.sendBroadcast(
-                                CallkitIncomingBroadcastReceiver.getIntentEnded(
-                                    requireNotNull(context),
-                                    currentCall.toBundle()
-                                )
+                    if(currentCall != null && context != null) {
+                        context?.sendBroadcast(
+                            CallkitIncomingBroadcastReceiver.getIntentEnded(
+                                requireNotNull(context),
+                                data.toBundle()
                             )
-                        }else {
-                            context?.sendBroadcast(
-                                CallkitIncomingBroadcastReceiver.getIntentDecline(
-                                    requireNotNull(context),
-                                    currentCall.toBundle()
-                                )
-                            )
-                        }
+                        )
                     }
-                    result.success(true)
+                    result.success("OK")
                 }
 
                 "callConnected" -> {
@@ -260,14 +248,13 @@ class FlutterCallkitIncomingPlugin : FlutterPlugin, MethodCallHandler, ActivityA
                     val data = Data(call.arguments() ?: HashMap())
                     val currentCall = calls.firstOrNull { it.id == data.id }
                     if (currentCall != null && context != null) {
-                        context?.sendBroadcast(
-                            CallkitIncomingBroadcastReceiver.getIntentConnected(
-                                requireNotNull(context),
-                                currentCall.toBundle()
-                            )
+                        CallkitNotificationService.startServiceWithAction(
+                            requireNotNull(context),
+                            CallkitConstants.ACTION_CALL_CONNECTED,
+                            currentCall.toBundle()
                         )
                     }
-                    result.success(true)
+                    result.success("OK")
                 }
 
                 "endAllCalls" -> {
@@ -290,7 +277,7 @@ class FlutterCallkitIncomingPlugin : FlutterPlugin, MethodCallHandler, ActivityA
                         }
                     }
                     removeAllCalls(context)
-                    result.success(true)
+                    result.success("OK")
                 }
 
                 "activeCalls" -> {
@@ -304,7 +291,7 @@ class FlutterCallkitIncomingPlugin : FlutterPlugin, MethodCallHandler, ActivityA
                 "silenceEvents" -> {
                     val silence = call.arguments as? Boolean ?: false
                     CallkitIncomingBroadcastReceiver.silenceEvents = silence
-                    result.success(true)
+                    result.success("")
                 }
 
                 "requestNotificationPermission" -> {
@@ -315,32 +302,28 @@ class FlutterCallkitIncomingPlugin : FlutterPlugin, MethodCallHandler, ActivityA
                         }
                     }
                     callkitNotificationManager?.requestNotificationPermission(activity, map)
-                    result.success(true)
                 }
 
                 "requestFullIntentPermission" -> {
                     callkitNotificationManager?.requestFullIntentPermission(activity)
-                    result.success(true)
                 }
 
                 "canUseFullScreenIntent" -> {
                     result.success(callkitNotificationManager?.canUseFullScreenIntent() ?: true)
                 }
-
                 // EDIT - clear the incoming notification/ring (after accept/decline/timeout)
                 "hideCallkitIncoming" -> {
                     val data = Data(call.arguments() ?: HashMap())
                     callkitSoundPlayerManager?.stop()
                     callkitNotificationManager?.clearIncomingNotification(data.toBundle(), false)
-                    result.success(true)
                 }
 
                 "endNativeSubsystemOnly" -> {
-                    result.success(true)
+
                 }
 
                 "setAudioRoute" -> {
-                    result.success(true)
+
                 }
             }
         } catch (error: Exception) {

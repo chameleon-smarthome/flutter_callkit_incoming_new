@@ -105,7 +105,6 @@ class HomePageState extends State<HomePage> {
 
   Future<void> requestNotificationPermission() async {
     await FlutterCallkitIncoming.requestNotificationPermission({
-      "title": "Notification Permission",
       "rationaleMessagePermission":
           "Notification permission is required, to show notification.",
       "postNotificationMessageRequired":
@@ -137,7 +136,7 @@ class HomePageState extends State<HomePage> {
         id: _currentUuid,
         nameCaller: 'Hien Nguyen',
         appName: 'Callkit',
-        avatar: 'https://fastly.picsum.photos/id/773/200/300.jpg?hmac=nhH4e4UtqcS6I0hy7eCr9waIFzMYNaMkzety6PQnOHM',
+        avatar: 'https://i.pravatar.cc/100',
         handle: '0123456789',
         type: 1,
         duration: 30000,
@@ -164,7 +163,7 @@ class HomePageState extends State<HomePage> {
           logoUrl: 'assets/test.png',
           ringtonePath: 'system_ringtone_default',
           backgroundColor: '#0955fa',
-          backgroundUrl: 'https://fastly.picsum.photos/id/773/200/300.jpg?hmac=nhH4e4UtqcS6I0hy7eCr9waIFzMYNaMkzety6PQnOHM',
+          backgroundUrl: 'assets/test.png',
           actionColor: '#4CAF50',
           textColor: '#ffffff',
           incomingCallNotificationChannelName: 'Incoming Call',
