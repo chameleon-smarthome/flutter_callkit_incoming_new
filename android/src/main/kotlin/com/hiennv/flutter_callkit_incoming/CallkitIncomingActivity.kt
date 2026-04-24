@@ -26,6 +26,8 @@ import android.view.ViewGroup.MarginLayoutParams
 import android.os.PowerManager
 import android.text.TextUtils
 import android.util.Log
+import java.net.HttpURLConnection
+import java.net.URL
 
 class CallkitIncomingActivity : Activity() {
 

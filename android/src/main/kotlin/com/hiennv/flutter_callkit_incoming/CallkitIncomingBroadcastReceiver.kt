@@ -7,6 +7,8 @@ import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import java.net.HttpURLConnection
+import java.net.URL
 
 class CallkitIncomingBroadcastReceiver : BroadcastReceiver() {
 
@@ -86,7 +88,6 @@ class CallkitIncomingBroadcastReceiver : BroadcastReceiver() {
         return FlutterCallkitIncomingPlugin.getInstance()?.getCallkitNotificationManager()
     }
 
-
     @SuppressLint("MissingPermission")
     override fun onReceive(context: Context, intent: Intent) {
         val action = intent.action ?: return
@@ -143,6 +144,20 @@ class CallkitIncomingBroadcastReceiver : BroadcastReceiver() {
                     getCallkitNotificationManager()?.clearIncomingNotification(data, false)
                     sendEventFlutter(CallkitConstants.ACTION_CALL_DECLINE, data)
                     removeCall(context, Data.fromBundle(data))
+
+                    val map = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        data?.getSerializable(CallkitConstants.EXTRA_CALLKIT_EXTRA, HashMap::class.java)
+                    } else {
+                        @Suppress("DEPRECATION")
+                        data?.getSerializable(CallkitConstants.EXTRA_CALLKIT_EXTRA) as? HashMap<String, Any?>
+                    }
+
+                    val deviceId = map?.get("deviceId") as? String?
+                    val serial = map?.get("publicSerial") as? String?
+
+                    if (deviceId != null && serial != null) {
+                        sendDecline(serial!!, deviceId!!)
+                    }
                 } catch (error: Exception) {
                     Log.e(TAG, null, error)
                 }
@@ -196,6 +211,30 @@ class CallkitIncomingBroadcastReceiver : BroadcastReceiver() {
                 }
             }
         }
+    }
+
+    private fun sendDecline(serial: String, deviceId: String) {
+        Thread {
+            try {
+                val url =
+                    URL("https://$serial.dns.chameleon.sh/api/v2/mobilapp/stream/call-declined")
+                val connection = url.openConnection() as HttpURLConnection
+
+                connection.requestMethod = "POST"
+                connection.connectTimeout = 3000
+                connection.readTimeout = 3000
+
+                connection.setRequestProperty("Content-Type", "application/json")
+                connection.setRequestProperty("Device-Id", deviceId)
+                connection.doOutput = true
+
+                val responseCode = connection.responseCode
+                Log.d("WTF", "Decline response: $responseCode")
+
+            } catch (e: Exception) {
+                Log.d("WTF", "Decline error: ${e.message}")
+            }
+        }.start()
     }
 
     private fun sendEventFlutter(event: String, data: Bundle) {
