@@ -78,8 +78,7 @@ class HomePageState extends State<HomePage> {
             ),
             Expanded(
               child: LayoutBuilder(
-                builder:
-                    (BuildContext context, BoxConstraints viewportConstraints) {
+                builder: (BuildContext context, BoxConstraints viewportConstraints) {
                   if (textEvents.isNotEmpty) {
                     return SingleChildScrollView(
                       child: ConstrainedBox(
@@ -106,10 +105,8 @@ class HomePageState extends State<HomePage> {
   Future<void> requestNotificationPermission() async {
     await FlutterCallkitIncoming.requestNotificationPermission({
       "title": "Notification Permission",
-      "rationaleMessagePermission":
-          "Notification permission is required, to show notification.",
-      "postNotificationMessageRequired":
-          "Notification permission is required, Please allow notification permission from setting."
+      "rationaleMessagePermission": "Notification permission is required, to show notification.",
+      "postNotificationMessageRequired": "Notification permission is required, Please allow notification permission from setting."
     });
   }
 
@@ -227,8 +224,7 @@ class HomePageState extends State<HomePage> {
   }
 
   Future<void> getDevicePushTokenVoIP() async {
-    var devicePushTokenVoIP =
-        await FlutterCallkitIncoming.getDevicePushTokenVoIP();
+    var devicePushTokenVoIP = await FlutterCallkitIncoming.getDevicePushTokenVoIP();
     print(devicePushTokenVoIP);
   }
 
@@ -240,12 +236,10 @@ class HomePageState extends State<HomePage> {
           case CallEventActionCallIncoming():
             break;
           case CallEventActionCallStart():
-            NavigationService.instance
-                .pushNamedIfNotCurrent(AppRoute.callingPage, args: event.id);
+            NavigationService.instance.pushNamedIfNotCurrent(AppRoute.callingPage, args: event.callKitParams?.id);
             break;
           case CallEventActionCallAccept():
-            NavigationService.instance
-                .pushNamedIfNotCurrent(AppRoute.callingPage, args: event.id);
+            NavigationService.instance.pushNamedIfNotCurrent(AppRoute.callingPage, args: event.callKitParams?.id);
             break;
           case CallEventActionCallDecline():
             await requestHttp("ACTION_CALL_DECLINE_FROM_DART");

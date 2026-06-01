@@ -22,14 +22,12 @@ typedef Callback = void Function(dynamic data);
 void _flutterCallkitIncomingCallbackDispatcher() {
   WidgetsFlutterBinding.ensureInitialized();
 
-  const MethodChannel backgroundChannel =
-      MethodChannel('flutter_callkit_incoming_background');
+  const MethodChannel backgroundChannel = MethodChannel('flutter_callkit_incoming_background');
 
   const MethodChannel channel = MethodChannel('flutter_callkit_incoming');
 
   backgroundChannel.setMethodCallHandler((MethodCall call) async {
-    final int rawHandle =
-        await channel.invokeMethod<int>('getBackgroundHandler') ?? 0;
+    final int rawHandle = await channel.invokeMethod<int>('getBackgroundHandler') ?? 0;
 
     final callback = PluginUtilities.getCallbackFromHandle(
       CallbackHandle.fromRawHandle(rawHandle),
@@ -46,20 +44,16 @@ void _flutterCallkitIncomingCallbackDispatcher() {
 }
 
 class FlutterCallkitIncoming {
-  static const MethodChannel _channel =
-      MethodChannel('flutter_callkit_incoming');
-  static const EventChannel _eventChannel =
-      EventChannel('flutter_callkit_incoming_events');
+  static const MethodChannel _channel = MethodChannel('flutter_callkit_incoming');
+  static const EventChannel _eventChannel = EventChannel('flutter_callkit_incoming_events');
 
   /// Set a message handler function which is called when the app is in the
   /// background or terminated.
-  static Future<void> onBackgroundMessage(
-      BackgroundMessageHandler handler) async {
+  static Future<void> onBackgroundMessage(BackgroundMessageHandler handler) async {
     final CallbackHandle pluginHandle = PluginUtilities.getCallbackHandle(
       _flutterCallkitIncomingCallbackDispatcher,
     )!;
-    final CallbackHandle userHandle =
-        PluginUtilities.getCallbackHandle(handler)!;
+    final CallbackHandle userHandle = PluginUtilities.getCallbackHandle(handler)!;
     await _channel.invokeMapMethod('registerBackgroundHandler', {
       'pluginHandle': pluginHandle.toRawHandle(),
       'userHandle': userHandle.toRawHandle(),
@@ -153,8 +147,7 @@ class FlutterCallkitIncoming {
   /// On iOS, using Callkit(update call ui).
   /// On Android, Nothing(only callback event listener).
   static Future<bool> isMuted(String id) async {
-    return (await _channel.invokeMethod("isMuted", {'id': id})) as bool? ??
-        false;
+    return (await _channel.invokeMethod("isMuted", {'id': id})) as bool? ?? false;
   }
 
   /// Hold an Ongoing call.
@@ -240,7 +233,7 @@ class FlutterCallkitIncoming {
     final eventName = data['event'];
     switch (eventName) {
       case CallEventConstants.actionDidUpdateDevicePushTokenVoip:
-        return const CallEventActionDidUpdateDevicePushTokenVoip();
+        return CallEventActionDidUpdateDevicePushTokenVoip();
       case CallEventConstants.actionCallIncoming:
         final callkitParams = toCallkitParams(data);
         if (callkitParams == null) {
@@ -252,43 +245,43 @@ class FlutterCallkitIncoming {
         if (callkitParams == null) {
           throw const FormatException('[ACTION_CALL_START] id is null.');
         }
-        return CallEventActionCallStart(callkitParams.id);
+        return CallEventActionCallStart(callkitParams);
       case CallEventConstants.actionCallAccept:
         final callkitParams = toCallkitParams(data);
         if (callkitParams == null) {
           throw const FormatException('[ACTION_CALL_ACCEPT] id is null.');
         }
-        return CallEventActionCallAccept(callkitParams.id);
+        return CallEventActionCallAccept(callkitParams);
       case CallEventConstants.actionCallDecline:
         final callkitParams = toCallkitParams(data);
         if (callkitParams == null) {
           throw const FormatException('[ACTION_CALL_DECLINE] id is null.');
         }
-        return CallEventActionCallDecline(callkitParams.id);
+        return CallEventActionCallDecline(callkitParams);
       case CallEventConstants.actionCallEnded:
         final callkitParams = toCallkitParams(data);
         if (callkitParams == null) {
           throw const FormatException('[ACTION_CALL_ENDED] id is null.');
         }
-        return CallEventActionCallEnded(callkitParams.id);
+        return CallEventActionCallEnded(callkitParams);
       case CallEventConstants.actionCallTimeout:
         final callkitParams = toCallkitParams(data);
         if (callkitParams == null) {
           throw const FormatException('[ACTION_CALL_TIMEOUT] id is null.');
         }
-        return CallEventActionCallTimeout(callkitParams.id);
+        return CallEventActionCallTimeout(callkitParams);
       case CallEventConstants.actionCallConnected:
         final callkitParams = toCallkitParams(data);
         if (callkitParams == null) {
           throw const FormatException('[ACTION_CALL_CONNECTED] id is null.');
         }
-        return CallEventActionCallConnected(callkitParams.id);
+        return CallEventActionCallConnected(callkitParams);
       case CallEventConstants.actionCallCallback:
         final callkitParams = toCallkitParams(data);
         if (callkitParams == null) {
           throw const FormatException('[ACTION_CALL_CALLBACK] id is null.');
         }
-        return CallEventActionCallCallback(callkitParams.id);
+        return CallEventActionCallCallback(callkitParams);
       case CallEventConstants.actionCallToggleHold:
         final body = data['body'] as Map<Object?, Object?>?;
         final id = body?['id'] as String?;
@@ -297,8 +290,7 @@ class FlutterCallkitIncoming {
         }
         final isOnHold = body?['isOnHold'] as bool?;
         if (isOnHold == null) {
-          throw const FormatException(
-              '[ACTION_CALL_TOGGLE_HOLD] isOnHold is null.');
+          throw const FormatException('[ACTION_CALL_TOGGLE_HOLD] isOnHold is null.');
         }
         return CallEventActionCallToggleHold(
           id,
@@ -312,8 +304,7 @@ class FlutterCallkitIncoming {
         }
         final isMuted = body?['isMuted'] as bool?;
         if (isMuted == null) {
-          throw const FormatException(
-              '[ACTION_CALL_TOGGLE_MUTE] isMuted is null.');
+          throw const FormatException('[ACTION_CALL_TOGGLE_MUTE] isMuted is null.');
         }
         return CallEventActionCallToggleMute(id, isMuted);
       case CallEventConstants.actionCallToggleDmtf:
@@ -324,13 +315,11 @@ class FlutterCallkitIncoming {
         }
         final digits = body?['digits'] as String?;
         if (digits == null) {
-          throw const FormatException(
-              '[ACTION_CALL_TOGGLE_DMTF] digits is null.');
+          throw const FormatException('[ACTION_CALL_TOGGLE_DMTF] digits is null.');
         }
         final type = body != null ? toDTMFActionType(body) : null;
         if (type == null) {
-          throw const FormatException(
-              '[ACTION_CALL_TOGGLE_DMTF] type is null.');
+          throw const FormatException('[ACTION_CALL_TOGGLE_DMTF] type is null.');
         }
         return CallEventActionCallToggleDmtf(id, digits, type);
       case CallEventConstants.actionCallToggleGroup:
@@ -345,8 +334,7 @@ class FlutterCallkitIncoming {
         final body = data['body'] as Map<Object?, Object?>?;
         final isActive = body?['isActive'] as bool?;
         if (isActive == null) {
-          throw const FormatException(
-              '[ACTION_CALL_TOGGLE_AUDIO_SESSION] id is null.');
+          throw const FormatException('[ACTION_CALL_TOGGLE_AUDIO_SESSION] id is null.');
         }
         return CallEventActionCallToggleAudioSession(isActive);
       case CallEventConstants.actionCallCustom:
@@ -362,8 +350,7 @@ class FlutterCallkitIncoming {
 
   static dynamic _convertMap(dynamic data) {
     if (data is Map) {
-      return data
-          .map((key, value) => MapEntry(key.toString(), _convertMap(value)));
+      return data.map((key, value) => MapEntry(key.toString(), _convertMap(value)));
     } else if (data is List) {
       return data.map((item) => _convertMap(item)).toList();
     } else {
