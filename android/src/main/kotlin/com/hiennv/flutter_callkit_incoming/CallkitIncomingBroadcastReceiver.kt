@@ -14,6 +14,7 @@ import android.util.Log
 import androidx.core.content.ContextCompat
 import java.net.HttpURLConnection
 import java.net.URL
+import java.net.URLEncoder
 
 class CallkitIncomingBroadcastReceiver : BroadcastReceiver() {
 
@@ -289,20 +290,7 @@ class CallkitIncomingBroadcastReceiver : BroadcastReceiver() {
                     getCallkitNotificationManager()?.clearIncomingNotification(data, false)
                     sendEventFlutter(CallkitConstants.ACTION_CALL_DECLINE, data)
                     removeCall(context, Data.fromBundle(data))
-
-                    val map = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        data?.getSerializable(CallkitConstants.EXTRA_CALLKIT_EXTRA, HashMap::class.java)
-                    } else {
-                        @Suppress("DEPRECATION")
-                        data?.getSerializable(CallkitConstants.EXTRA_CALLKIT_EXTRA) as? HashMap<String, Any?>
-                    }
-
-                    val deviceId = map?.get("deviceId") as? String?
-                    val serial = map?.get("publicSerial") as? String?
-
-                    if (deviceId != null && serial != null) {
-                        sendDecline(serial!!, deviceId!!)
-                    }
+                    sendDeclineFromData(context, data)
                 } catch (error: Exception) {
                     Log.e(TAG, null, error)
                 }
@@ -331,6 +319,7 @@ class CallkitIncomingBroadcastReceiver : BroadcastReceiver() {
                     notificationManager?.showMissCallNotification(data)
                     sendEventFlutter(CallkitConstants.ACTION_CALL_TIMEOUT, data)
                     removeCall(context, Data.fromBundle(data))
+                    sendDeclineFromData(context, data)
                 } catch (error: Exception) {
                     Log.e(TAG, null, error)
                 }
@@ -360,6 +349,55 @@ class CallkitIncomingBroadcastReceiver : BroadcastReceiver() {
                 }
             }
         }
+    }
+
+    private fun sendDeclineFromData(context: Context, data: Bundle?) {
+        val map = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            data?.getSerializable(CallkitConstants.EXTRA_CALLKIT_EXTRA, HashMap::class.java)
+        } else {
+            @Suppress("DEPRECATION")
+            data?.getSerializable(CallkitConstants.EXTRA_CALLKIT_EXTRA) as? HashMap<String, Any?>
+        }
+
+        val flatId = map?.get("flatId")
+        if (flatId != null && flatId.toString().isNotEmpty()) {
+            sendCondominiumCancel(context, flatId)
+            return
+        }
+
+        val deviceId = map?.get("deviceId") as? String?
+        val serial = map?.get("publicSerial") as? String?
+
+        if (deviceId != null && serial != null) {
+            sendDecline(serial, deviceId)
+        }
+    }
+
+    private fun sendCondominiumCancel(context: Context, flatId: Any) {
+        val baseUrl = context
+            .getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
+            .getString("flutter.condominiumNativeUrl", null)
+
+        if (baseUrl.isNullOrEmpty()) {
+            Log.d("WTF", "Condominium cancel: missing url")
+            return
+        }
+
+        Thread {
+            try {
+                val fid = URLEncoder.encode(flatId.toString(), "UTF-8")
+                val url = URL(baseUrl.trimEnd('/') + "/api/doorphone/cancel-call?fid=" + fid)
+                val connection = url.openConnection() as HttpURLConnection
+
+                connection.requestMethod = "POST"
+                connection.connectTimeout = 3000
+                connection.readTimeout = 3000
+
+                Log.d("WTF", "Condominium cancel response: ${connection.responseCode}")
+            } catch (e: Exception) {
+                Log.d("WTF", "Condominium cancel error: ${e.message}")
+            }
+        }.start()
     }
 
     private fun sendDecline(serial: String, deviceId: String) {
